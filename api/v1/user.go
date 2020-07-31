@@ -5,6 +5,7 @@ import (
 	"ginblog/utils/err_msg"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 )
 
 // 状态码
@@ -18,7 +19,7 @@ func AddUser(c *gin.Context) {
 		return
 	}
 	// CheckUser() 会返回一个判断用户是否存在的状态码
-	code = model.CheckUser(data.UserName);
+	code = model.CheckUser(data.UserName)
 	if code == err_msg.SUCCESS {
 		model.CreateUser(&data)
 	}
@@ -26,22 +27,41 @@ func AddUser(c *gin.Context) {
 		code = err_msg.ErrorUsernameUsed
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"status": code,
-		"data": data,
+		"status":  code,
+		"data":    data,
 		"message": err_msg.GetErrMsg(code),
 	})
 
 }
+
 // 查询单个用户
 
 // 查询用户列表
 func GetUsers(c *gin.Context) {
+	pageSize, _ := strconv.Atoi(c.Query("pagesize"))
+	pageNum, _ := strconv.Atoi(c.Query("pagenum"))
 
+	if pageSize == 0 {
+		pageSize = -1
+	}
+	if pageNum == 0 {
+		pageNum = -1
+	}
+
+	data := model.GetUsers(pageSize, pageNum)
+	code = err_msg.SUCCESS
+	c.JSON(http.StatusOK, gin.H{
+		"status":  code,
+		"data":    data,
+		"message": err_msg.GetErrMsg(code),
+	})
 }
+
 // 编辑用户
 func EditUser(c *gin.Context) {
 
 }
+
 // 删除用户
 func DeleteUser(c *gin.Context) {
 
