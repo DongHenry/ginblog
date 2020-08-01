@@ -1,8 +1,11 @@
 package model
 
 import (
+	"encoding/base64"
 	"ginblog/utils/err_msg"
 	"github.com/jinzhu/gorm"
+	"golang.org/x/crypto/scrypt"
+	"log"
 )
 
 type User struct {
@@ -24,6 +27,7 @@ func CheckUser(username string) (code int) {
 
 // 新增用户
 func CreateUser(data *User) int {
+	//data.Password = ScryptPw(data.Password)
 	err := db.Create(&data).Error
 	if err != nil {
 		return err_msg.ERROR // 500
@@ -41,6 +45,45 @@ func GetUsers(pageSize int, pageNum int) []User {
 	return users
 }
 
-// 编辑用户
+// 编辑用户信息
+func EditUser(id int, data *User) int {
+	var user User
+	var maps = make(map[string]interface{})
+	maps["user_name"] = data.UserName
+	maps["role"] = data.Role
+	err := db.Model(&user).Where("id = ?", id).Update(maps).Error
+	if err != nil {
+		return err_msg.ERROR
+	}
+	return err_msg.SUCCESS
+}
 
 // 删除用户
+func DeleteUser(id int) int {
+	var user User
+	err := db.Where("id = ?", id).Delete(&user).Error
+	if err != nil {
+		return err_msg.ERROR
+	}
+	return err_msg.SUCCESS
+}
+
+// 密码加密
+func (u *User) BeforeSave() {
+	u.Password = ScryptPw(u.Password)
+}
+func ScryptPw(password string) string {
+	const (
+		PwSaltBytes = 8
+		PwHashBytes = 10
+	)
+	salt := make([]byte, PwSaltBytes)
+	salt = []byte{23, 56, 11, 74, 34, 75, 27, 93}
+
+	HashPw, err := scrypt.Key([]byte(password), salt, 16384, 8, 1, PwHashBytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fpw := base64.StdEncoding.EncodeToString(HashPw)
+	return fpw
+}
